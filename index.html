@@ -41,6 +41,9 @@
   .locked-badge{background:var(--gray-bg); color:var(--muted); border:1px solid var(--border);}
   .edit-badge{background:rgba(79,156,249,.15); color:var(--accent); border:1px solid var(--accent);}
 
+  .hint-banner{background:var(--panel); border:1px solid var(--accent); border-radius:10px; padding:10px 14px; font-size:13px; color:var(--muted); margin-bottom:20px; display:none;}
+  .hint-banner a{color:var(--accent);}
+
   .stats{display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:12px; margin-bottom:22px;}
   .stat{background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:14px 16px;}
   .stat .num{font-size:26px; font-weight:800;}
@@ -87,7 +90,7 @@
   .prog-bar > i{display:block; height:100%; background:var(--accent); border-radius:4px;}
   .prog-num{font-size:12px; color:var(--muted); min-width:34px; text-align:right;}
   .prog-input{
-    width:52px; background:var(--panel2); color:var(--text); border:1px solid var(--border);
+    width:60px; background:var(--panel2); color:var(--text); border:1px solid var(--border);
     border-radius:6px; padding:4px 6px; font-size:12.5px;
   }
 
@@ -95,19 +98,19 @@
     background:var(--panel2); color:var(--text); border:1px solid var(--border);
     border-radius:6px; padding:5px 8px; font-size:13px; width:100%;
   }
-  td input:disabled{opacity:.5; cursor:not-allowed; background:transparent; border-color:transparent; padding-left:0;}
+  td input:disabled{opacity:.55; cursor:not-allowed; background:transparent; border-color:transparent; padding-left:0;}
 
   select{
     background:var(--panel2); color:var(--text); border:1px solid var(--border);
     border-radius:6px; padding:5px 8px; font-size:13px;
   }
-  select:disabled{opacity:.5; cursor:not-allowed; border-color:transparent; background:transparent; appearance:none; -webkit-appearance:none;}
 
   .modal-mask{position:fixed; inset:0; background:rgba(0,0,0,.6); display:none; align-items:center; justify-content:center; z-index:50; padding:16px;}
   .modal-mask.show{display:flex;}
-  .modal{background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:24px; width:100%; max-width:380px;}
+  .modal{background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:24px; width:100%; max-width:420px;}
   .modal h3{margin-bottom:6px; font-size:16px;}
-  .modal p{color:var(--muted); font-size:13px; margin-bottom:16px;}
+  .modal p{color:var(--muted); font-size:13px; margin-bottom:12px;}
+  .modal p a{color:var(--accent);}
   .modal input{width:100%; background:var(--panel2); color:var(--text); border:1px solid var(--border); border-radius:8px; padding:10px 12px; font-size:14px; margin-bottom:12px;}
   .modal .actions{display:flex; gap:10px; justify-content:flex-end;}
   .err{color:#f85149; font-size:12px; margin-bottom:8px; display:none;}
@@ -133,8 +136,13 @@
     </div>
     <div class="toolbar">
       <span id="modeBadge" class="locked-badge">🔒 只读模式</span>
+      <button class="btn" id="btnOwner" style="display:none;">🔓 我是主人</button>
+      <button class="btn" id="btnExit" style="display:none;">🔒 退出编辑</button>
+      <button class="btn btn-primary" id="btnSave" disabled>💾 保存并同步</button>
     </div>
   </header>
+
+  <div id="banner" class="hint-banner"></div>
 
   <div class="stats">
     <div class="stat">
@@ -159,21 +167,51 @@
   <div id="root"></div>
 
   <footer>
-    <div>打卡进度由本人维护 · 访客只读</div>
+    <div id="footLine">打卡进度由本人维护 · 访客只读</div>
+    <div class="hint" id="footLogout" style="display:none; margin-top:6px;"><a href="#" id="linkLogout">清除本机保存的 Token</a></div>
   </footer>
+</div>
+
+<!-- 主人 Token 弹窗 -->
+<div class="modal-mask" id="tokenMask">
+  <div class="modal">
+    <h3>🔓 主人登录</h3>
+    <p>输入你的 GitHub Personal Access Token（只存在你本浏览器，不上传）。如何获取见
+       <a href="https://github.com/settings/tokens" target="_blank" rel="noopener">这里</a>，勾选 <b>repo</b> 权限即够用。</p>
+    <div class="err" id="tokenErr"></div>
+    <input type="password" id="tokenInput" placeholder="ghp_..." autocomplete="off">
+    <div class="actions">
+      <button class="btn" id="tokenCancel">取消</button>
+      <button class="btn btn-primary" id="tokenOk">登录</button>
+    </div>
+    <p class="hint" style="margin-top:12px; text-align:center;">仓库：<span id="modalRepo"></span></p>
+  </div>
 </div>
 
 <script src="data.js"></script>
 <script>
+// 仓库信息跟随部署脚本（deploy.sh）里的用户名/仓库名，需要保持一致时改这两项
+window.REPO_CONFIG = {
+  owner: "Reex06",
+  repo: "learning-checkin",
+  branch: "main"
+};
+</script>
+<script>
 (function(){
-  // ---------- 配置 ----------
+  "use strict";
+
+  var REPO = window.REPO_CONFIG;
+  var STORAGE_KEY = "checkin_owner_token_v1";
   var STATUS = {
     plan:  { label:"计划中", color:"st-plan"  },
     study: { label:"学习中", color:"st-study" },
     done:  { label:"已结束", color:"st-done"  }
   };
 
-  var data = window.CHECKIN_DATA;   // 只读渲染仓库 data.js 的数据
+  // 工作数据：从 data.js 深拷贝一份，改动都先落在这里，点保存才写回仓库
+  var data = JSON.parse(JSON.stringify(window.CHECKIN_DATA));
+  var unlocked = false;
 
   // ---------- 渲染 ----------
   function renderStats(){
@@ -198,7 +236,7 @@
   function renderTable(){
     var root = document.getElementById("root");
     root.innerHTML = "";
-    data.modules.forEach(function(m){
+    data.modules.forEach(function(m, mi){
       var sec = document.createElement("div");
       sec.className = "module";
 
@@ -228,7 +266,7 @@
       tbl.appendChild(thead);
 
       var tbody = document.createElement("tbody");
-      m.items.forEach(function(it){
+      m.items.forEach(function(it, ii){
         var tr = document.createElement("tr");
 
         var tdName = document.createElement("td");
@@ -236,14 +274,29 @@
         tdName.textContent = it.name;
         tr.appendChild(tdName);
 
+        // 状态列
         var tdStatus = document.createElement("td");
-        var pill = document.createElement("span");
-        var st = STATUS[it.status] || STATUS.plan;
-        pill.className = "status-pill " + st.color;
-        pill.textContent = st.label;
-        tdStatus.appendChild(pill);
+        if(unlocked){
+          var sel = document.createElement("select");
+          sel.dataset.act = "status"; sel.dataset.mi = mi; sel.dataset.ii = ii;
+          Object.keys(STATUS).forEach(function(k){
+            var o = document.createElement("option");
+            o.value = k; o.textContent = STATUS[k].label;
+            if(it.status===k) o.selected = true;
+            sel.appendChild(o);
+          });
+          sel.addEventListener("change", onEdit);
+          tdStatus.appendChild(sel);
+        } else {
+          var pill = document.createElement("span");
+          var st = STATUS[it.status] || STATUS.plan;
+          pill.className = "status-pill " + st.color;
+          pill.textContent = st.label;
+          tdStatus.appendChild(pill);
+        }
         tr.appendChild(tdStatus);
 
+        // 进度列
         var tdProg = document.createElement("td");
         var progWrap = document.createElement("div");
         progWrap.className = "prog-wrap";
@@ -252,20 +305,47 @@
         var fill = document.createElement("i");
         fill.style.width = (it.progress||0) + "%";
         bar.appendChild(fill);
-        var num = document.createElement("span");
-        num.className = "prog-num";
-        num.textContent = (it.progress||0) + "%";
         progWrap.appendChild(bar);
-        progWrap.appendChild(num);
+        if(unlocked){
+          var progInput = document.createElement("input");
+          progInput.type = "number";
+          progInput.min = "0"; progInput.max = "100";
+          progInput.value = (it.progress||0);
+          progInput.className = "prog-input";
+          progInput.dataset.act = "progress"; progInput.dataset.mi = mi; progInput.dataset.ii = ii;
+          progInput.addEventListener("change", onEdit);
+          progWrap.appendChild(progInput);
+          progWrap.appendChild(document.createTextNode("%"));
+        } else {
+          var num = document.createElement("span");
+          num.className = "prog-num";
+          num.textContent = (it.progress||0) + "%";
+          progWrap.appendChild(num);
+        }
         tdProg.appendChild(progWrap);
         tr.appendChild(tdProg);
 
+        // 规划时间列
         var tdPlan = document.createElement("td");
-        tdPlan.textContent = it.planTime || "";
+        var planInput = document.createElement("input");
+        planInput.type = "text";
+        planInput.value = it.planTime || "";
+        planInput.placeholder = "如：2 周 / 19 节";
+        planInput.dataset.act = "planTime"; planInput.dataset.mi = mi; planInput.dataset.ii = ii;
+        if(unlocked){ planInput.addEventListener("change", onEdit); }
+        else { planInput.disabled = true; }
+        tdPlan.appendChild(planInput);
         tr.appendChild(tdPlan);
 
+        // 完成时间列
         var tdDone = document.createElement("td");
-        tdDone.textContent = it.doneTime || "";
+        var doneInput = document.createElement("input");
+        doneInput.type = "date";
+        doneInput.value = it.doneTime || "";
+        doneInput.dataset.act = "doneTime"; doneInput.dataset.mi = mi; doneInput.dataset.ii = ii;
+        if(unlocked){ doneInput.addEventListener("change", onEdit); }
+        else { doneInput.disabled = true; }
+        tdDone.appendChild(doneInput);
         tr.appendChild(tdDone);
 
         tbody.appendChild(tr);
@@ -277,8 +357,272 @@
     });
   }
 
-  renderTable();
-  renderStats();
+  function refresh(){
+    renderTable();
+    renderStats();
+  }
+
+  // ---------- 编辑联动 ----------
+  function onEdit(e){
+    var t = e.target;
+    var mi = parseInt(t.dataset.mi,10);
+    var ii = parseInt(t.dataset.ii,10);
+    var act = t.dataset.act;
+    if(!data.modules[mi] || !data.modules[mi].items[ii]) return;
+    var it = data.modules[mi].items[ii];
+
+    if(act==="status"){
+      it.status = t.value;
+      if(t.value==="done" && !it.doneTime){ it.doneTime = today(); }
+      else if(t.value!=="done"){ it.doneTime = ""; }
+    } else if(act==="planTime"){
+      it.planTime = t.value;
+    } else if(act==="doneTime"){
+      it.doneTime = t.value;
+    } else if(act==="progress"){
+      var p = parseInt(t.value,10);
+      if(isNaN(p)) p = 0;
+      p = Math.max(0, Math.min(100, p));
+      it.progress = p;
+      if(p>=100 && it.status!=="done"){ it.status = "done"; if(!it.doneTime) it.doneTime = today(); }
+      else if(p>0 && p<100 && it.status==="plan"){ it.status = "study"; }
+      else if(p===0 && it.status==="study"){ it.status = "plan"; }
+    }
+    refresh();
+  }
+
+  function today(){
+    return new Date().toISOString().slice(0,10);
+  }
+
+  // ---------- Token / 登录 ----------
+  function getToken(){
+    var t = localStorage.getItem(STORAGE_KEY);
+    return t || "";
+  }
+  function setToken(t){ if(t) localStorage.setItem(STORAGE_KEY, t); else localStorage.removeItem(STORAGE_KEY); }
+  function hasToken(){ return !!getToken(); }
+
+  function openTokenModal(){
+    document.getElementById("modalRepo").textContent = REPO.owner + "/" + REPO.repo;
+    document.getElementById("tokenErr").classList.remove("show");
+    document.getElementById("tokenErr").textContent = "";
+    document.getElementById("tokenInput").value = "";
+    document.getElementById("tokenMask").classList.add("show");
+    setTimeout(function(){ document.getElementById("tokenInput").focus(); }, 50);
+  }
+  function closeTokenModal(){
+    document.getElementById("tokenMask").classList.remove("show");
+  }
+
+  function applyToken(t){
+    setToken(t);
+    closeTokenModal();
+    unlocked = true;
+    updateMode();
+  }
+
+  function tryLogin(){
+    var v = document.getElementById("tokenInput").value.trim();
+    var err = document.getElementById("tokenErr");
+    if(!v){ err.textContent="请输入 Token"; err.classList.add("show"); return; }
+    // 简单校验 + 校验 token 是否有效且是否有 repo 权限
+    err.classList.remove("show");
+    verifyToken(v).then(function(ok){
+      if(ok){ applyToken(v); }
+      else {
+        err.textContent = "Token 无效或缺少 repo 权限，请检查。";
+        err.classList.add("show");
+      }
+    }).catch(function(){
+      err.textContent = "校验 Token 失败（可能是网络问题）。";
+      err.classList.add("show");
+    });
+  }
+
+  function verifyToken(token){
+    return fetch("https://api.github.com/user", {
+      headers: {
+        "Authorization": "token " + token,
+        "Accept": "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28"
+      }
+    }).then(function(r){
+      if(!r.ok) return false;
+      return r.json().then(function(u){
+        // 校验登录用户就是仓库 owner
+        if(u.login && u.login.toLowerCase() === REPO.owner.toLowerCase()) return true;
+        return false;
+      }).catch(function(){ return false; });
+    });
+  }
+
+  // ---------- 保存并同步到仓库 ----------
+  function serializable(){
+    var obj = {
+      version: data.version,
+      updatedAt: today(),
+      modules: data.modules
+    };
+    return obj;
+  }
+
+  function buildDataJsContent(){
+    var obj = serializable();
+    return "// =============================================================\n" +
+           "// 学习打卡数据文件\n" +
+           "// 此文件由「打卡页面」的【保存并同步】按钮自动生成并提交到 GitHub 仓库，\n" +
+           "// 访客访问线上页面时读到的是这里的数据。\n" +
+           "// 结构：大模块 modules[] → 每个模块下的 items[] 小模块\n" +
+           "// =============================================================\n" +
+           "window.CHECKIN_DATA = " + JSON.stringify(obj, null, 2) + ";\n";
+  }
+
+  function setBusy(busy, msg){
+    var btn = document.getElementById("btnSave");
+    if(busy){ btn.disabled = true; btn.textContent = msg || "同步中…"; }
+    else { btn.disabled = false; btn.textContent = "💾 保存并同步"; }
+  }
+
+  function showBanner(type, text){
+    var b = document.getElementById("banner");
+    b.style.display = "block";
+    b.style.borderColor = type==="error" ? "#f85149" : "var(--accent)";
+    b.style.color = type==="error" ? "#f85149" : "var(--muted)";
+    b.textContent = text;
+  }
+  function hideBanner(){ document.getElementById("banner").style.display = "none"; }
+
+  // GitHub API：写 data.js
+  function apiGetFile(path){
+    return fetch("https://api.github.com/repos/" + REPO.owner + "/" + REPO.repo + "/contents/" + encodeURIComponent(path), {
+      headers: authHeaders()
+    });
+  }
+  function authHeaders(){
+    return {
+      "Authorization": "token " + getToken(),
+      "Accept": "application/vnd.github+json",
+      "X-GitHub-Api-Version": "2022-11-28"
+    };
+  }
+
+  function saveToRepo(){
+    var token = getToken();
+    if(!token){ showBanner("error","尚未登录，请先点「🔓 我是主人」。"); return; }
+
+    var content = buildDataJsContent();
+    // base64：GitHub Contents API 要求 base64 编码
+    var b64 = utf8ToBase64(content);
+    var path = "data.js";
+
+    setBusy(true, "同步中…");
+    showBanner("info", "正在保存并推送 data.js 到仓库…");
+
+    // 先 GET 拿到当前 data.js 的 SHA（改动必须携带 sha 才能更新）
+    apiGetFile(path).then(function(r){
+      if(!r.ok){
+        return r.json().then(function(j){ throw new Error(j.message || ("GET 失败 " + r.status)); });
+      }
+      return r.json();
+    }).then(function(file){
+      var body = {
+        message: "更新打卡进度 " + today(),
+        content: b64,
+        sha: file.sha,
+        branch: REPO.branch
+      };
+      return fetch("https://api.github.com/repos/" + REPO.owner + "/" + REPO.repo + "/contents/" + encodeURIComponent(path), {
+        method: "PUT",
+        headers: authHeaders(),
+        body: JSON.stringify(body)
+      });
+    }).then(function(r){
+      if(!r.ok){
+        return r.json().then(function(j){ throw new Error(j.message || ("PUT 失败 " + r.status)); });
+      }
+      return r.json();
+    }).then(function(){
+      setBusy(false);
+      showBanner("info", "✅ 已保存并推送成功！访客刷新页面（约 1 分钟内生效）即可看到最新进度。");
+    }).catch(function(e){
+      var msg = e && e.message ? e.message : String(e);
+      setBusy(false);
+      showBanner("error", "❌ 保存失败：" + msg);
+    });
+  }
+
+  function utf8ToBase64(str){
+    // 兼容中文：先把字符串编码为 UTF-8 字节，再做 base64
+    var bytes = new TextEncoder().encode(str);
+    var bin = "";
+    bytes.forEach(function(b){ bin += String.fromCharCode(b); });
+    return btoa(bin);
+  }
+
+  // ---------- 模式切换 ----------
+  function updateMode(){
+    var badge = document.getElementById("modeBadge");
+    var btnOwner = document.getElementById("btnOwner");
+    var btnExit = document.getElementById("btnExit");
+    var btnSave = document.getElementById("btnSave");
+    var footLogout = document.getElementById("linkLogout");
+    var banner = document.getElementById("banner");
+
+    if(unlocked){
+      badge.className = "edit-badge";
+      badge.textContent = "✏️ 编辑模式";
+      btnOwner.style.display = "none";
+      btnExit.style.display = "inline-block";
+      btnSave.disabled = false;
+      footLogout.style.display = "inline";
+    } else {
+      badge.className = "locked-badge";
+      badge.textContent = "🔒 只读模式";
+      btnOwner.style.display = "inline-block";
+      btnExit.style.display = "none";
+      btnSave.disabled = true;
+      footLogout.style.display = "none";
+      hideBanner();
+    }
+    refresh();
+  }
+
+  // ---------- 事件绑定 ----------
+  document.getElementById("btnOwner").addEventListener("click", openTokenModal);
+  document.getElementById("btnExit").addEventListener("click", function(){
+    unlocked = false;
+    updateMode();
+  });
+  document.getElementById("btnSave").addEventListener("click", saveToRepo);
+  document.getElementById("linkLogout").addEventListener("click", function(e){
+    e.preventDefault();
+    if(confirm("清除本机保存的 Token 并退出编辑？")){
+      setToken("");
+      unlocked = false;
+      updateMode();
+    }
+  });
+
+  document.getElementById("tokenOk").addEventListener("click", tryLogin);
+  document.getElementById("tokenCancel").addEventListener("click", closeTokenModal);
+  document.getElementById("tokenInput").addEventListener("keydown", function(e){
+    if(e.key==="Enter") tryLogin();
+  });
+  document.getElementById("tokenMask").addEventListener("click", function(e){
+    if(e.target===this) closeTokenModal();
+  });
+
+  // 启动：若本机已存有效 token，则默认进入编辑模式
+  if(hasToken()){
+    unlocked = true;
+    document.getElementById("footLine").textContent = "打卡进度由本人维护 · 主人可直接编辑";
+    updateMode();
+    // 顺手校验 token 是否仍有效，失效则退出编辑
+    verifyToken(getToken()).then(function(ok){ if(!ok){ unlocked = false; updateMode(); } });
+  } else {
+    updateMode();
+  }
 })();
 </script>
 </body>
