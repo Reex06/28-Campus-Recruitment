@@ -2,6 +2,9 @@
 edit.html
 
 # 系统/编辑器文件
+打卡.md
+README.md
+deploy.sh
 .DS_Store
 Thumbs.db
 *.log
