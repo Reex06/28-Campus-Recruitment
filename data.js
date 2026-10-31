@@ -149,7 +149,7 @@ window.CHECKIN_DATA = {
         {
           "id": "buildroot-main",
           "name": "buildroot 构建系统",
-          "status": "study",
+          "status": "plan",
           "progress": 0,
           "planTime": "",
           "doneTime": ""
