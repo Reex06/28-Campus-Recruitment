@@ -10,7 +10,7 @@ window.CHECKIN_DATA = {
   "modules": [
     {
       "id": "ds-algo",
-      "name": "数据结构与算法",
+      "name": "数据结构与算法/LeetCode hot100",
       "items": [
         { "id": "hash",         "name": "哈希",         "status": "plan",      "progress": 0,   "planTime": "", "doneTime": "" },
         { "id": "two-pointer",  "name": "双指针",       "status": "plan",      "progress": 0,   "planTime": "", "doneTime": "" },
@@ -27,8 +27,7 @@ window.CHECKIN_DATA = {
         { "id": "heap",         "name": "堆",           "status": "plan",      "progress": 0,   "planTime": "", "doneTime": "" },
         { "id": "greedy",       "name": "贪心算法",     "status": "plan",      "progress": 0,   "planTime": "", "doneTime": "" },
         { "id": "dp",           "name": "动态规划",     "status": "plan",      "progress": 0,   "planTime": "", "doneTime": "" },
-        { "id": "dp-multi",     "name": "多维动态规划", "status": "plan",      "progress": 0,   "planTime": "", "doneTime": "" },
-        { "id": "hot100",       "name": "LeetCode Hot 100", "status": "plan",  "progress": 0,   "planTime": "", "doneTime": "" }
+        { "id": "dp-multi",     "name": "多维动态规划", "status": "plan",      "progress": 0,   "planTime": "", "doneTime": "" }
       ]
     },
     {
@@ -63,17 +62,17 @@ window.CHECKIN_DATA = {
       "id": "linux-driver",
       "name": "Linux 驱动大全",
       "items": [
-        { "id": "drv-sync",      "name": "1-2 同步与互斥（7节）",        "status": "plan", "progress": 0, "planTime": "7节",  "doneTime": "" },
-        { "id": "drv-lcd",       "name": "1-3 LCD驱动 基于IMX6ULL（19节）", "status": "plan", "progress": 0, "planTime": "19节", "doneTime": "" },
-        { "id": "drv-i2c",       "name": "1-4 I2C子系统 基于IMX6ULL（15节）", "status": "plan", "progress": 0, "planTime": "15节", "doneTime": "" },
-        { "id": "drv-input",     "name": "1-5 Input子系统 基于IMX6ULL（18节）", "status": "plan", "progress": 0, "planTime": "18节", "doneTime": "" },
-        { "id": "drv-pinctrl",   "name": "1-6 Pinctrl子系统 基于IMX6ULL（10节）", "status": "plan", "progress": 0, "planTime": "10节", "doneTime": "" },
-        { "id": "drv-gpio",      "name": "1-7 GPIO子系统 基于IMX6ULL（11节）", "status": "plan", "progress": 0, "planTime": "11节", "doneTime": "" },
-        { "id": "drv-interrupt", "name": "1-8 Interrupt子系统 基于IMX6ULL（19节）", "status": "plan", "progress": 0, "planTime": "19节", "doneTime": "" },
-        { "id": "drv-uart",      "name": "1-9 UART串口子系统 基于IMX6ULL（21节）", "status": "plan", "progress": 0, "planTime": "21节", "doneTime": "" },
-        { "id": "drv-pcie",      "name": "1-10 PCI和PCIe子系统（16节）", "status": "plan", "progress": 0, "planTime": "16节", "doneTime": "" },
-        { "id": "drv-spi",       "name": "1-11 SPI子系统（29节）",       "status": "plan", "progress": 0, "planTime": "29节", "doneTime": "" },
-        { "id": "drv-v4l2",      "name": "1-13 V4L2摄像头驱动（37节）",   "status": "plan", "progress": 0, "planTime": "37节", "doneTime": "" }
+        { "id": "drv-sync",      "name": "1 同步与互斥（7节）",        "status": "plan", "progress": 0, "planTime": "7节",  "doneTime": "" },
+        { "id": "drv-lcd",       "name": "2 LCD驱动 基于IMX6ULL（19节）", "status": "plan", "progress": 0, "planTime": "19节", "doneTime": "" },
+        { "id": "drv-i2c",       "name": "3 I2C子系统 基于IMX6ULL（15节）", "status": "plan", "progress": 0, "planTime": "15节", "doneTime": "" },
+        { "id": "drv-input",     "name": "4 Input子系统 基于IMX6ULL（18节）", "status": "plan", "progress": 0, "planTime": "18节", "doneTime": "" },
+        { "id": "drv-pinctrl",   "name": "5 Pinctrl子系统 基于IMX6ULL（10节）", "status": "plan", "progress": 0, "planTime": "10节", "doneTime": "" },
+        { "id": "drv-gpio",      "name": "6 GPIO子系统 基于IMX6ULL（11节）", "status": "plan", "progress": 0, "planTime": "11节", "doneTime": "" },
+        { "id": "drv-interrupt", "name": "7 Interrupt子系统 基于IMX6ULL（19节）", "status": "plan", "progress": 0, "planTime": "19节", "doneTime": "" },
+        { "id": "drv-uart",      "name": "8 UART串口子系统 基于IMX6ULL（21节）", "status": "plan", "progress": 0, "planTime": "21节", "doneTime": "" },
+        { "id": "drv-pcie",      "name": "9 PCI和PCIe子系统（16节）", "status": "plan", "progress": 0, "planTime": "16节", "doneTime": "" },
+        { "id": "drv-spi",       "name": "10 SPI子系统（29节）",       "status": "plan", "progress": 0, "planTime": "29节", "doneTime": "" },
+        { "id": "drv-v4l2",      "name": "11 V4L2摄像头驱动（37节）",   "status": "plan", "progress": 0, "planTime": "37节", "doneTime": "" }
       ]
     },
     {
